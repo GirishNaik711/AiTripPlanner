@@ -3,7 +3,7 @@ import requests
 import datetime
 from streamlit_lottie import st_lottie
 import json
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://aitripplanner-m8cm.onrender.com"
 
 st.set_page_config(
     page_title="RUDE Agentic Travel Planner",
