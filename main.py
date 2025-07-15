@@ -14,6 +14,10 @@ app = FastAPI()
 class QueryRequest(BaseModel):
     question:str
 
+@app.get("/")
+async def root():
+    return {"message": "🧠 FastAPI Agentic Backend is up and running."}
+
 
 @app.post("/query")
 async def query_travel_agent(query:QueryRequest):
