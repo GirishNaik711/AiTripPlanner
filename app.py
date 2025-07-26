@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import datetime
+import uuid
 from streamlit_lottie import st_lottie
 import json
 
@@ -12,7 +13,7 @@ st.set_page_config(
     layout="centered",
 )
 
-# SCIFI CSS + Animated Footer Styles
+# SCIFI CSS + Footer Animation
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -102,7 +103,6 @@ st.markdown("""
         50% { opacity: 0; }
     }
 
-    /* Footer Animation */
     .footer {
         text-align: center;
         font-size: 14px;
@@ -127,14 +127,19 @@ st.markdown("""
 st.markdown("<div class='terminal-title'>RUDE AGENTIC TRAVEL CONSOLE 🛸</div>", unsafe_allow_html=True)
 st.markdown("<div class='terminal-sub'>‘Cos apparently your species can’t plan vacations without me <span class='cursor'></span></div>", unsafe_allow_html=True)
 
-# Initialize history
+# Initialize session_id and history
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# Chat input
 with st.form(key="chat_form", clear_on_submit=True):
     user_input = st.text_input("Command Input", placeholder="e.g., Plan my Goa trip with zero effort.", label_visibility="collapsed")
     send_button = st.form_submit_button("Launch")
 
+# Handle submission
 if send_button and user_input.strip():
     st.session_state.chat_history.append({
         "sender": "user",
@@ -144,11 +149,16 @@ if send_button and user_input.strip():
 
     try:
         with st.spinner("Compiling your lazy request..."):
-            response = requests.post(f"{BASE_URL}/query", json={"question": user_input})
+            response = requests.post(f"{BASE_URL}/query", json={
+                "question": user_input,
+                "session_id": st.session_state.session_id
+            })
+
         if response.status_code == 200:
             ai_response = response.json().get("answer", "Ugh. Here's what I found. You're welcome.")
         else:
-            ai_response = "Error 404: Human laziness exceeded response limits."
+            ai_response = f"Backend error ({response.status_code}): {response.text}"
+
     except Exception as e:
         ai_response = f"System Fault: Your error broke my circuits ({e})"
 
@@ -158,7 +168,7 @@ if send_button and user_input.strip():
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
-# Display chat
+# Display chat history
 for msg in st.session_state.chat_history:
     bubble_class = "user-bubble" if msg["sender"] == "user" else "ai-bubble"
     st.markdown(f"""
@@ -166,7 +176,7 @@ for msg in st.session_state.chat_history:
         <div class='timestamp'>{msg['time']}</div>
     """, unsafe_allow_html=True)
 
-# Animated Footer
+# Footer
 st.markdown("""
     <hr style="border: 1px solid #33ffcc; margin-top: 40px;"/>
     <div class='footer'>
