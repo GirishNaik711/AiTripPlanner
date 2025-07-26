@@ -3,6 +3,7 @@ import requests
 import datetime
 from streamlit_lottie import st_lottie
 import json
+
 BASE_URL = "https://aitripplanner-m8cm.onrender.com"
 
 st.set_page_config(
@@ -11,7 +12,7 @@ st.set_page_config(
     layout="centered",
 )
 
-# SCIFI CSS
+# SCIFI CSS + Animated Footer Styles
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -100,6 +101,26 @@ st.markdown("""
         0%, 100% { opacity: 1; }
         50% { opacity: 0; }
     }
+
+    /* Footer Animation */
+    .footer {
+        text-align: center;
+        font-size: 14px;
+        color: #8899a6;
+        padding: 20px 10px 40px;
+        animation: fadeUp 1.5s ease-out;
+    }
+
+    @keyframes fadeUp {
+        0% {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -144,3 +165,12 @@ for msg in st.session_state.chat_history:
         <div class='chat-bubble {bubble_class}'>{msg['message']}</div>
         <div class='timestamp'>{msg['time']}</div>
     """, unsafe_allow_html=True)
+
+# Animated Footer
+st.markdown("""
+    <hr style="border: 1px solid #33ffcc; margin-top: 40px;"/>
+    <div class='footer'>
+        made by <span style='color:#33ffcc;'>Girish</span> to impress hiring managers.<br>
+        <span style='font-size:12px;'>© 2025 RUDE Labs | All bugs are features.</span>
+    </div>
+""", unsafe_allow_html=True)
