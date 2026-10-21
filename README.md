@@ -2,6 +2,8 @@
 
 A rude travel agent. FastAPI backend running a LangGraph agent (Groq) with weather, place search, currency and expense tools, plus a Streamlit chat UI.
 
+![The chat UI on first load](docs/screenshot.jpg)
+
 ## Requirements
 
 - Python 3.12+
