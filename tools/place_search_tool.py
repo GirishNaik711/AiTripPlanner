@@ -1,61 +1,72 @@
 import os
+import logging
 from utils.place_info_search import GooglePlaceSearchTool, TavilyPlaceSearchTool
+from utils.validation import Place
 from typing import List
 from langchain.tools import tool
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
+
+MAX_RESULT_CHARS = 4000
 
 class PlaceSearchTool:
     def __init__(self):
         load_dotenv()
         self.google_api_key = os.environ.get("GPLACE_API_KEY")
-        self.google_places_search = GooglePlaceSearchTool(self.google_api_key)
-        self.tavily_search = TavilyPlaceSearchTool()
-        self.place_search_tool_list = self._setup_tools()
+        self.google_places_search = self._google_tool()
+        self.tavily_search = TavilyPlaceSearchTool() if os.environ.get("TAVILY_API_KEY") else None
+        if not (self.google_places_search or self.tavily_search):
+            logger.warning("GPLACE_API_KEY and TAVILY_API_KEY not set, place search tools disabled")
+        self.place_search_tool_list = self._setup_tools() if (self.google_places_search or self.tavily_search) else []
+
+    def _google_tool(self):
+        if not self.google_api_key:
+            return None
+        try:
+            return GooglePlaceSearchTool(self.google_api_key)
+        except ValueError:  # the Google client refuses keys that aren't shaped like one
+            logger.warning("GPLACE_API_KEY was rejected by the Google client, Google Places disabled")
+            return None
+
+    def _lookup(self, label: str, place: str, google_method: str, tavily_method: str) -> str:
+        """Google first, Tavily as fallback, a fixed message if both come back empty"""
+        if self.google_places_search:
+            try:
+                result = getattr(self.google_places_search, google_method)(place)
+                if result:
+                    return f"Following are the {label} of {place} as suggested by google: {str(result)[:MAX_RESULT_CHARS]}"
+            except Exception as e:  # third-party clients raise assorted types, and their text can carry the api key
+                logger.warning("Google Places %s lookup failed: %s", label, type(e).__name__)
+        if self.tavily_search:
+            try:
+                result = getattr(self.tavily_search, tavily_method)(place)
+                if result:
+                    return f"Following are the {label} of {place}: {str(result)[:MAX_RESULT_CHARS]}"
+            except Exception as e:
+                logger.warning("Tavily %s lookup failed: %s", label, type(e).__name__)
+        return f"Could not find {label} for {place}"
 
     def _setup_tools(self) -> List:
         """Setup all tools for the place search tool"""
         @tool
-        def search_attractions(place:str) -> str:
+        def search_attractions(place: Place) -> str:
             """Search attractions of a place"""
-            try:
-                attraction_result = self.google_places_search.google_search_attractions(place)
-                if attraction_result:
-                    return f"Following are the attractions of {place} as suggested by google: {attraction_result}"
-            except Exception as e:
-                tavily_result = self.tavily_search.tavily_search_attractions(place)
-                return f"Google cannot find the details due to {e}. \nFollowing are the attractions of {place}: {tavily_result}"  ## Fallback search using tavily in case google places fail
-        
+            return self._lookup("attractions", place, "google_search_attractions", "tavily_search_attraction")
+
         @tool
-        def search_restaurants(place:str) -> str:
+        def search_restaurants(place: Place) -> str:
             """Search restaurants of a place"""
-            try:
-                restaurants_result = self.google_places_search.google_search_restaurants(place)
-                if restaurants_result:
-                    return f"Following are the restaurants of {place} as suggested by google: {restaurants_result}"
-            except Exception as e:
-                tavily_result = self.tavily_search.tavily_search_restaurants(place)
-                return f"Google cannot find the details due to {e}. \nFollowing are the restaurants of {place}: {tavily_result}"  ## Fallback search using tavily in case google places fail
-        
+            return self._lookup("restaurants", place, "google_search_restaurants", "tavily_search_restaurants")
+
         @tool
-        def search_activities(place:str) -> str:
+        def search_activities(place: Place) -> str:
             """Search activities of a place"""
-            try:
-                activity_result = self.google_places_search.google_search_activity(place)
-                if activity_result:
-                    return f"Following are the activities in and around {place} as suggested by google: {activity_result}"
-            except Exception as e:
-                tavily_result = self.tavily_search.tavily_search_activity(place)
-                return f"Google cannot find the details due to {e}. \nFollowing are the activities of {place}: {tavily_result}"  ## Fallback search using tavily in case google places fail
-        
+            return self._lookup("activities", place, "google_search_activity", "tavily_search_activity")
+
         @tool
-        def search_transportation(place:str) -> str:
+        def search_transportation(place: Place) -> str:
             """Search transportation of a place"""
-            try:
-                transportation_result = self.google_places_search.google_search_transportation(place)
-                if transportation_result:
-                    return f"Following are the modes of transportation available in {place} as suggested by google: {transportation_result}"
-            except Exception as e:
-                tavily_result = self.tavily_search.tavily_search_transportation(place)
-                return f"Google cannot find the details due to {e}. \nFollowing are the modes of transportation available in {place}: {tavily_result}"  ## Fallback search using tavily in case google places fail
-        
+            return self._lookup("modes of transportation", place, "google_search_transportation", "tavily_search_transportation")
+
         return [search_attractions, search_restaurants, search_activities, search_transportation]

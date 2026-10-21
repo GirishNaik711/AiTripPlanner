@@ -2,6 +2,8 @@ llm:
   openai:
     provider: "openai"
     model_name: "o4-mini"
+    gate_model_name: "o4-mini"
   groq:
     provider: "groq"
-    model_name: "deepseek-r1-distill-llama-70b"
+    model_name: "llama-3.3-70b-versatile"
+    gate_model_name: "llama-3.1-8b-instant"

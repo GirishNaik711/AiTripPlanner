@@ -12,9 +12,18 @@ wheels/
 # Virtual environments
 .venv/
 .myenv/
+venv/
+env/
 
 # Environment variables
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Generated files
+my_graph.png
+output/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
